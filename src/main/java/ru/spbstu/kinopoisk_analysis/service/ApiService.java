@@ -1,30 +1,32 @@
 package ru.spbstu.kinopoisk_analysis.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+
+import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
 import ru.spbstu.kinopoisk_analysis.exception.ForbiddenException;
 import ru.spbstu.kinopoisk_analysis.exception.UnauthorizedException;
 
 @Service
+@RequiredArgsConstructor
 public class ApiService {
 
     private final WebClient webClient;
 
-    @Autowired
-    public ApiService(WebClient webClient) {
-        this.webClient = webClient;
-    }
+    @Value("${kinopoisk.fetch.types}")
+    private String[] fetchTypes;
 
     public Mono<String> getResponse(String apiKey) {
         return webClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/movie/random")
                         .queryParam("rating.kp", "2-10")
-                        .queryParam("type", "movie", "cartoon", "tv-series")
+                        .queryParam("type", fetchTypes)
                         .build())
                 .header("X-API-KEY", apiKey)
                 .accept(MediaType.APPLICATION_JSON)
