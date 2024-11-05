@@ -20,7 +20,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 @Component
-@EnableScheduling
 public class ApiClient {
 
     private final AmqpSender amqpSender;
