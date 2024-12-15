@@ -59,6 +59,7 @@ public class ApiClient {
                             log.info("Reached day limit. No more data to process, stopping.");
                             return Flux.empty();
                         }
+                        log.info("Fetched " + list.size() + " jsons.");
                         return Flux.fromIterable(list);
                     })
                 )
