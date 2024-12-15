@@ -7,26 +7,44 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
+import ru.spbstu.kinopoisk_analysis.exception.BadRequest;
 import ru.spbstu.kinopoisk_analysis.exception.ForbiddenException;
 import ru.spbstu.kinopoisk_analysis.exception.UnauthorizedException;
 
 @Service
-@RequiredArgsConstructor
 public class ApiService {
+
+    private static final Object[] FIELDS = {
+            "id", "externalId", "name", "enName", "alternativeName", "names", "description", "shortDescription",
+            "slogan", "type", "typeNumber", "isSeries", "status", "year", "releaseYears", "rating", "ratingMpaa",
+            "ageRating", "votes", "seasonsInfo", "budget", "audience", "movieLength", "seriesLength", "totalSeriesLength",
+            "genres", "countries", "poster", "backdrop", "logo", "ticketsOnSale", "videos", "networks", "persons", "facts",
+            "fees", "premiere", "similarMovies", "sequelsAndPrequels", "watchability", "lists", "top10", "top250", "updatedAt",
+            "createdAt"
+    };
 
     private final WebClient webClient;
 
     @Value("${kinopoisk.fetch.types}")
     private String[] fetchTypes;
 
-    public Mono<String> getResponse(String apiKey) {
+    @Autowired
+    public ApiService(WebClient webClient) {
+        this.webClient = webClient;
+    }
+
+    public Mono<String> getResponse(String apiKey, Integer pageNumber) {
         return webClient.get()
                 .uri(uriBuilder -> uriBuilder
-                        .path("/movie/random")
+                        .path("/movie")
+                        .queryParam("sortField", "id")
+                        .queryParam("sortType", "1")
+                        .queryParam("selectFields", FIELDS)
                         .queryParam("rating.kp", "2-10")
                         .queryParam("type", fetchTypes)
+                        .queryParam("limit", "100")
+                        .queryParam("page", pageNumber.toString())
                         .build())
                 .header("X-API-KEY", apiKey)
                 .accept(MediaType.APPLICATION_JSON)
@@ -41,6 +59,10 @@ public class ApiService {
                         clientResponse -> clientResponse.bodyToMono(String.class)
                                 .flatMap(errorBody -> Mono.error(new UnauthorizedException(errorBody)))
                 )
+                .onStatus(status -> status.value() == HttpStatus.BAD_REQUEST.value(),
+                        clientResponse -> clientResponse.bodyToMono(String.class)
+                                .flatMap(errorBody -> Mono.error(new BadRequest(errorBody)))
+                        )
                 .bodyToMono(String.class);
     }
 }

@@ -4,18 +4,19 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import ru.spbstu.kinopoisk_analysis.amqp.AmqpSender;
+import ru.spbstu.kinopoisk_analysis.exception.BadRequest;
 import ru.spbstu.kinopoisk_analysis.exception.ForbiddenException;
 import ru.spbstu.kinopoisk_analysis.exception.UnauthorizedException;
 import ru.spbstu.kinopoisk_analysis.service.ApiService;
 
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 @Slf4j
@@ -27,6 +28,7 @@ public class ApiClient {
     private final ApiKey[] apiKeys;
 
     private final AtomicBoolean lastResponseWasEmpty = new AtomicBoolean(false);
+    private final AtomicInteger pageNum = new AtomicInteger(1);
 
     @Autowired
     public ApiClient(AmqpSender amqpSender, ApiService apiService, @Value("${kinopoisk.api-key}") String api) {
@@ -42,11 +44,12 @@ public class ApiClient {
 
         Flux.defer(() ->
                     Flux.range(1, apiKeys.length)
-                    .flatMap(i -> apiService.getResponse(apiKeys[i - 1].getValue())
+                    .flatMap(i -> apiService.getResponse(apiKeys[i - 1].getValue(), pageNum.getAndIncrement())
                             .onErrorResume(ForbiddenException.class,
                                     error -> handleApiError(apiKeys[i - 1], "Reached the limit for key: "))
                             .onErrorResume(UnauthorizedException.class,
                                     error -> handleApiError(apiKeys[i - 1], "Key is not available: "))
+                            .onErrorComplete(BadRequest.class)
                     )
                     .filter(it -> !it.isEmpty())
                     .collectList()
