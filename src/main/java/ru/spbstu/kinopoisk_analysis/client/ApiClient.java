@@ -65,7 +65,7 @@ public class ApiClient {
                 )
                 .repeat(() -> !lastResponseWasEmpty.get())
                 .subscribe(
-                        amqpSender::sendMessage,
+                        //amqpSender::sendMessage,
                         error -> log.error("Error while sending json to the queue.")
                 );
     }
