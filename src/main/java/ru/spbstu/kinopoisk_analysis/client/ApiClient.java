@@ -65,7 +65,7 @@ public class ApiClient {
                 )
                 .repeat(() -> !lastResponseWasEmpty.get())
                 .subscribe(
-                        //amqpSender::sendMessage,
+                        amqpSender::sendMessage,
                         error -> log.error("Error while sending json to the queue.")
                 );
     }
@@ -78,7 +78,7 @@ public class ApiClient {
         return Mono.empty();
     }
 
-    private static String maskApi(String s) {
+    public static String maskApi(String s) {
         return s.replaceAll("(?<=-)[A-Z0-9]{7}", "*******");
     }
 
